@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:chatta/components/mytext_field.dart';
-import 'package:chatta/auth/auth_service.dart';
+import 'package:scanny/components/mytext_field.dart';
+import 'package:scanny/auth/auth_service.dart';
 
 class LoginPage extends StatelessWidget {
   final TextEditingController _emailController = TextEditingController();

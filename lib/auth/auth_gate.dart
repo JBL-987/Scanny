@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:chatta/pages/home_page.dart';
-import 'package:chatta/auth/login_or_register.dart';
+import 'package:scanny/pages/home_page.dart';
+import 'package:scanny/auth/login_or_register.dart';
 
 class Authgate extends StatelessWidget {
   const Authgate({super.key});
