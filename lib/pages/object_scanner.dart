@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
-import 'dart:typed_data';
 import 'dart:async';
-import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
+import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'dart:io';
 
 enum ScannerState { initializing, ready, error, scanning }
@@ -20,7 +18,7 @@ class ObjectScanner extends StatefulWidget {
 class _ObjectScannerState extends State<ObjectScanner>
     with WidgetsBindingObserver {
   late CameraController _cameraController;
-  ObjectDetector? _objectDetector;
+  ImageLabeler? _imageLabeler;
   bool _isDetecting = false;
   String _detectedObject = "Scanning...";
   bool _isFlashOn = false;
@@ -31,6 +29,7 @@ class _ObjectScannerState extends State<ObjectScanner>
   StreamSubscription<dynamic>? _streamSubscription;
   ScannerState _scannerState = ScannerState.initializing;
   String? _errorMessage;
+  bool _isDownloadingModel = false;
 
   @override
   void initState() {
@@ -41,7 +40,7 @@ class _ObjectScannerState extends State<ObjectScanner>
 
   Future<void> _initializeScanner() async {
     try {
-      await _initializeDetector();
+      await _initializeLabeler();
       await _initializeCamera();
 
       if (mounted) {
@@ -54,46 +53,31 @@ class _ObjectScannerState extends State<ObjectScanner>
     }
   }
 
-  Future<void> _initializeDetector() async {
+Future<void> _initializeLabeler() async {
     try {
-      // Tentukan lokasi file model
-      final modelPath = 'assets/mobilenet_v2.tflite';
+      setState(() {
+        _isDownloadingModel = true;
+      });
 
-      // Salin model dari assets ke lokasi yang dapat diakses
-      final modelFile = await _getModel(modelPath);
+      final options = ImageLabelerOptions(confidenceThreshold: 0.3);
+      _imageLabeler = ImageLabeler(options: options);
 
-      final options = LocalObjectDetectorOptions(
-        mode: DetectionMode.stream,
-        modelPath: modelFile.path,
-        classifyObjects: true,
-        multipleObjects: true,
-        confidenceThreshold: 0.5, // Tambahkan threshold confidence
-      );
-
-      _objectDetector = ObjectDetector(options: options);
+      setState(() {
+        _isDownloadingModel = false;
+      });
     } catch (e) {
-      throw Exception('Error initializing detector: $e');
+      setState(() {
+        _isDownloadingModel = false;
+      });
+      _handleError('Error initializing image labeler: $e');
     }
-  }
-
-  // Fungsi untuk mendapatkan model dari assets
-  Future<File> _getModel(String assetPath) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final modelFile = File('${appDir.path}/${assetPath.split('/').last}');
-
-    if (!await modelFile.exists()) {
-      final byteData = await rootBundle.load(assetPath);
-      await modelFile.writeAsBytes(byteData.buffer.asUint8List());
-    }
-
-    return modelFile;
   }
 
   Future<void> _initializeCamera() async {
     try {
       _cameraController = CameraController(
         widget.cameras[0],
-        ResolutionPreset.medium,
+        ResolutionPreset.high,
         enableAudio: false,
         imageFormatGroup:
             Platform.isAndroid
@@ -199,24 +183,22 @@ class _ObjectScannerState extends State<ObjectScanner>
   }
 
   Future<void> _processImage(InputImage inputImage) async {
-    if (_objectDetector == null || !mounted) return;
+    if (_imageLabeler == null || !mounted) return;
 
     try {
-      final objects = await _objectDetector!.processImage(inputImage);
+      final labels = await _imageLabeler!.processImage(inputImage);
       if (!mounted) return;
 
+      // Debug: print all detected labels and their confidence
+      for (final label in labels) {
+        print('Label: ${label.label}, Confidence: ${label.confidence}');
+      }
+
       final detectedLabels =
-          objects
-              .where(
-                (obj) =>
-                    obj.labels.isNotEmpty &&
-                    (obj.labels.first.confidence ?? 0) > 0.5,
-              )
-              .map((obj) {
-                final confidence = (obj.labels.first.confidence ?? 0) * 100;
-                return '${obj.labels.first.text} (${confidence.toStringAsFixed(0)}%)';
-              })
-              .toList();
+          labels.where((label) => label.confidence > 0.3).map((label) {
+            final confidence = (label.confidence) * 100;
+            return '${label.label} (${confidence.toStringAsFixed(0)}%)';
+          }).toList();
 
       setState(() {
         _detectedObject =
@@ -276,20 +258,25 @@ class _ObjectScannerState extends State<ObjectScanner>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Cek dulu apakah controller terinisialisasi
     if (!_cameraController.value.isInitialized) return;
 
     try {
-      if (state == AppLifecycleState.inactive) {
+      if (state == AppLifecycleState.inactive ||
+          state == AppLifecycleState.paused) {
+        _streamSubscription?.cancel();
         _cameraController.dispose();
       } else if (state == AppLifecycleState.resumed) {
-        _initializeCamera();
+        _initializeCamera().then((_) {
+          if (mounted && _scannerState == ScannerState.ready) {
+            _startImageStream();
+          }
+        });
       }
     } catch (e) {
       _handleError('Error changing app lifecycle state: $e');
     }
   }
-
+  
   Future<bool> _onWillPop() async {
     return await showDialog<bool>(
           context: context,
@@ -319,7 +306,7 @@ class _ObjectScannerState extends State<ObjectScanner>
     if (_cameraController.value.isInitialized) {
       _cameraController.dispose();
     }
-    _objectDetector?.close();
+    _imageLabeler?.close();
     _streamSubscription?.cancel();
     super.dispose();
   }
@@ -347,13 +334,17 @@ class _ObjectScannerState extends State<ObjectScanner>
   }
 
   Widget _buildLoadingView() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          CircularProgressIndicator(color: Colors.green),
-          SizedBox(height: 16),
-          Text('Initializing scanner...'),
+          const CircularProgressIndicator(color: Colors.green),
+          const SizedBox(height: 16),
+          Text(
+            _isDownloadingModel
+                ? 'Downloading model... This may take a moment'
+                : 'Initializing scanner...',
+          ),
         ],
       ),
     );

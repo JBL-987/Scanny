@@ -3,15 +3,24 @@ import 'package:scanny/firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:scanny/themes/dark_mode.dart';
 import 'package:scanny/auth/auth_gate.dart';
+import 'package:camera/camera.dart';
 
-void main() async {
+List<CameraDescription> cameras = [];
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  try {
+    cameras = await availableCameras();
+  } on CameraException catch (e) {
+    debugPrint('Error initializing cameras: ${e.description}');
+  }
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

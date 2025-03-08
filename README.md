@@ -1,4 +1,4 @@
-# chatta
+# scanny
 
 A new Flutter project.
 
