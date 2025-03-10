@@ -30,6 +30,15 @@ class _ObjectScannerState extends State<ObjectScanner>
   ScannerState _scannerState = ScannerState.initializing;
   String? _errorMessage;
   bool _isDownloadingModel = false;
+  // Jumlah maksimal label yang ditampilkan
+  final int _maxLabelsToShow = 1;
+  // Threshold kepercayaan untuk filter
+  final double _confidenceThreshold = 0.65;
+  // Delay antara proses deteksi untuk stabilitas
+  final Duration _processingDelay = Duration(milliseconds: 300);
+  // Cache hasil deteksi untuk mengurangi flickering
+  final List<String> _labelCache = [];
+  final int _cacheSize = 3;
 
   @override
   void initState() {
@@ -53,13 +62,16 @@ class _ObjectScannerState extends State<ObjectScanner>
     }
   }
 
-Future<void> _initializeLabeler() async {
+  Future<void> _initializeLabeler() async {
     try {
       setState(() {
         _isDownloadingModel = true;
       });
 
-      final options = ImageLabelerOptions(confidenceThreshold: 0.3);
+      // Meningkatkan threshold untuk mendapatkan label dengan kepercayaan lebih tinggi
+      final options = ImageLabelerOptions(
+        confidenceThreshold: _confidenceThreshold,
+      );
       _imageLabeler = ImageLabeler(options: options);
 
       setState(() {
@@ -102,6 +114,8 @@ Future<void> _initializeLabeler() async {
   void _startImageStream() {
     try {
       _streamSubscription?.cancel();
+
+      // Tambahkan delay antar frame untuk mengurangi beban pemrosesan
       _streamSubscription = _cameraController
           .startImageStream((CameraImage image) async {
             if (_isDetecting || _scannerState != ScannerState.ready) return;
@@ -111,12 +125,15 @@ Future<void> _initializeLabeler() async {
             });
 
             try {
+              await Future.delayed(
+                _processingDelay,
+              ); // Tambahkan delay untuk stabilitas
+
               final InputImage? inputImage = await _processImageData(image);
               if (inputImage != null && mounted) {
                 await _processImage(inputImage);
               }
             } catch (e) {
-              // Hanya log error tanpa mengubah state untuk menghindari crash
               print('Error in stream: $e');
             } finally {
               if (mounted) {
@@ -189,26 +206,63 @@ Future<void> _initializeLabeler() async {
       final labels = await _imageLabeler!.processImage(inputImage);
       if (!mounted) return;
 
-      // Debug: print all detected labels and their confidence
-      for (final label in labels) {
-        print('Label: ${label.label}, Confidence: ${label.confidence}');
+      // Sort labels by confidence (descending)
+      labels.sort((a, b) => b.confidence.compareTo(a.confidence));
+
+      // Ambil hanya label dengan kepercayaan tertinggi
+      final filteredLabels =
+          labels
+              .where((label) => label.confidence > _confidenceThreshold)
+              .take(_maxLabelsToShow)
+              .map((label) => label.label)
+              .toList();
+
+      if (filteredLabels.isNotEmpty) {
+        // Tambahkan ke cache dan ambil label yang paling sering muncul
+        _updateLabelCache(filteredLabels.first);
+        final mostFrequentLabel = _getMostFrequentLabel();
+
+        setState(() {
+          _detectedObject = mostFrequentLabel ?? "No objects detected";
+        });
+      } else {
+        setState(() {
+          _detectedObject = "No objects detected";
+        });
       }
-
-      final detectedLabels =
-          labels.where((label) => label.confidence > 0.3).map((label) {
-            final confidence = (label.confidence) * 100;
-            return '${label.label} (${confidence.toStringAsFixed(0)}%)';
-          }).toList();
-
-      setState(() {
-        _detectedObject =
-            detectedLabels.isNotEmpty
-                ? detectedLabels.join(", ")
-                : "No objects detected";
-      });
     } catch (e) {
       print('Error processing image: $e');
     }
+  }
+
+  // Metode untuk menambahkan label ke cache
+  void _updateLabelCache(String label) {
+    _labelCache.add(label);
+    if (_labelCache.length > _cacheSize) {
+      _labelCache.removeAt(0);
+    }
+  }
+
+  // Metode untuk mendapatkan label yang paling sering muncul di cache
+  String? _getMostFrequentLabel() {
+    if (_labelCache.isEmpty) return null;
+
+    final Map<String, int> frequency = {};
+    for (final label in _labelCache) {
+      frequency[label] = (frequency[label] ?? 0) + 1;
+    }
+
+    String? mostFrequent;
+    int maxCount = 0;
+
+    frequency.forEach((label, count) {
+      if (count > maxCount) {
+        maxCount = count;
+        mostFrequent = label;
+      }
+    });
+
+    return mostFrequent;
   }
 
   void _handleError(String error) {
@@ -276,7 +330,7 @@ Future<void> _initializeLabeler() async {
       _handleError('Error changing app lifecycle state: $e');
     }
   }
-  
+
   Future<bool> _onWillPop() async {
     return await showDialog<bool>(
           context: context,
@@ -406,7 +460,7 @@ Future<void> _initializeLabeler() async {
                   Text(
                     _detectedObject,
                     style: const TextStyle(
-                      fontSize: 20,
+                      fontSize: 24,
                       color: Colors.green,
                       fontWeight: FontWeight.bold,
                     ),
