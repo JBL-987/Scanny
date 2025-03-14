@@ -1,6 +1,6 @@
 # Scanny 
 
-My Flutter Project With AI Chat as a Doctor
+My Flutter Project for labelling an object when you open camera
 
 ## This Project is still on development
 you may contribute if you want 
