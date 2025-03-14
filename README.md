@@ -1,16 +1,27 @@
-# scanny
+# Scanny 
 
-A new Flutter project.
+My Flutter Project With AI Chat as a Doctor
 
-## Getting Started
+## This Project is still on development
+you may contribute if you want 
 
-This project is a starting point for a Flutter application.
+```bash
+git clone https://github.com/JBL-987/Scanny.git
+cd <this_repo_name>
+```
+```bash
+flutter clean
+flutter pub get
+flutter run
+```
 
-A few resources to get you started if this is your first Flutter project:
+## For android emulator testing
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+flutter clean
+flutter pub get
+flutter emulators --launch <your_emulator>
+ flutter run -d <yout_emulator>
+```
+## make sure you already installed flutter first on your system env
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
