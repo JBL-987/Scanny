@@ -1,7 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:scanny/firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'package:scanny/themes/dark_mode.dart';
+import 'package:scanny/themes/light_mode.dart';
 import 'package:scanny/auth/auth_gate.dart';
 import 'package:camera/camera.dart';
 
@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: "Scanny",
       home: const Authgate(),
-      theme: darkTheme,
+      theme: lightTheme,
     );
   }
 }

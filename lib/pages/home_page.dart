@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:scanny/auth/auth_service.dart';
 import 'package:scanny/pages/object_scanner.dart';
-import 'dart:math' as math;
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -27,9 +26,9 @@ class _HomePageState extends State<HomePage>
     super.initState();
     _initializeCameras();
     _animationController = AnimationController(
-      duration: const Duration(seconds: 2),
+      duration: const Duration(seconds: 3),
       vsync: this,
-    )..repeat();
+    )..repeat(reverse: true);
   }
 
   @override
@@ -52,7 +51,7 @@ class _HomePageState extends State<HomePage>
     if (cameras.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Tidak ada kamera yang tersedia'),
+          content: Text('No camera available'),
           backgroundColor: Colors.red,
         ),
       );
@@ -65,76 +64,66 @@ class _HomePageState extends State<HomePage>
     );
   }
 
-  Widget _buildScannerAnimation() {
-    return AnimatedBuilder(
-      animation: _animationController,
-      builder: (context, child) {
-        return Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 150, // Reduced size
-              height: 150, // Reduced size
+  Widget _buildFriendlyCamera() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Responsive camera size based on screen width
+        double screenWidth = MediaQuery.of(context).size.width;
+        double cameraSize = screenWidth * 0.4; // 40% of screen width
+        cameraSize = cameraSize.clamp(120.0, 180.0); // Min 120, Max 180
+
+        return AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return Container(
+              width: cameraSize,
+              height: cameraSize,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(15),
+                color: const Color.fromRGBO(255, 248, 225, 1),
+                borderRadius: BorderRadius.circular(25),
                 border: Border.all(
-                  color: Colors.blue.withOpacity(0.5),
-                  width: 2,
+                  color: const Color.fromRGBO(255, 193, 7, 1),
+                  width: 3,
                 ),
-              ),
-            ),
-            Positioned(
-              child: Container(
-                width: 130, // Adjusted for new container size
-                height: 2,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.blue.withOpacity(0),
-                      Colors.blue,
-                      Colors.blue.withOpacity(0),
-                    ],
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color.fromRGBO(
+                      255,
+                      193,
+                      7,
+                      1,
+                    ).withOpacity(_animationController.value * 0.3),
+                    blurRadius: 20,
+                    spreadRadius: 5,
                   ),
-                ),
+                ],
               ),
-              top:
-                  15 +
-                  120 * _animationController.value, // Adjusted for new size
-            ),
-            Transform.rotate(
-              angle: 2 * math.pi * _animationController.value,
-              child: Container(
-                width: 165, // Adjusted size
-                height: 165, // Adjusted size
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.blue.withOpacity(0.2),
-                    width: 2,
-                  ),
-                ),
-              ),
-            ),
-            ...List.generate(4, (index) {
-              return Positioned(
-                left: 75, // Adjusted for new center
-                top: 75, // Adjusted for new center
-                child: Transform.rotate(
-                  angle:
-                      (2 * math.pi / 4) * index +
-                      (_animationController.value * 2 * math.pi),
-                  child: Container(
-                    width: 8, // Smaller dots
-                    height: 8, // Smaller dots
-                    decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(4),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text('📷', style: TextStyle(fontSize: cameraSize * 0.33)),
+                  SizedBox(height: cameraSize * 0.04),
+                  Text(
+                    'Smart Camera',
+                    style: TextStyle(
+                      fontSize: (cameraSize * 0.09).clamp(14.0, 16.0),
+                      fontWeight: FontWeight.bold,
+                      color: const Color.fromRGBO(66, 66, 66, 1),
                     ),
                   ),
-                ),
-              );
-            }),
-          ],
+                  SizedBox(height: cameraSize * 0.02),
+                  Container(
+                    width: cameraSize * 0.44,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(76, 175, 80, 1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -142,144 +131,285 @@ class _HomePageState extends State<HomePage>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenHeight < 700;
+
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color.fromRGBO(255, 253, 245, 1),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color.fromRGBO(255, 248, 225, 1),
         elevation: 0,
-        title: const Text(
-          'Chatta Smart Scanner',
-          style: TextStyle(fontSize: 18, color: Colors.white),
+        title: Row(
+          children: [
+            const Text('🌟', style: TextStyle(fontSize: 24)),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                'Scanny',
+                style: TextStyle(
+                  fontSize: screenWidth < 350 ? 16 : 18,
+                  color: const Color.fromRGBO(66, 66, 66, 1),
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text('🎯', style: TextStyle(fontSize: 24)),
+          ],
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white),
-            onPressed: logout,
-            tooltip: 'Logout',
+          Container(
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(255, 152, 0, 0.2),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: IconButton(
+              icon: const Text('👋', style: TextStyle(fontSize: 20)),
+              onPressed: logout,
+              tooltip: 'Logout',
+            ),
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(
-                child: CircularProgressIndicator(color: Colors.blue),
-              )
-              : SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
+      body: _isLoading
+          ? Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(
+              color: Color.fromRGBO(255, 193, 7, 1),
+              strokeWidth: 5,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '🔄 Loading camera...',
+              style: TextStyle(
+                color: const Color.fromRGBO(255, 193, 7, 1),
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      )
+          : SafeArea(
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.05, // 5% of screen width
+            ),
+            child: Column(
+              children: [
+                SizedBox(height: isSmallScreen ? 12 : 20),
+
+                // Welcome message container
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: const Color.fromRGBO(255, 248, 225, 1),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(
+                      color: const Color.fromRGBO(255, 224, 130, 1),
+                    ),
+                  ),
+                  child: Row(
                     children: [
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Deteksi objek secara real-time dengan teknologi AI',
-                        style: TextStyle(color: Colors.white70, fontSize: 14),
-                        textAlign: TextAlign.center,
-                      ),
-                      const Spacer(flex: 1),
-                      Center(child: _buildScannerAnimation()),
-                      const Spacer(flex: 1),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          children: [
-                            _FeatureItem(
-                              icon: Icons.camera,
-                              title: 'Deteksi Real-time',
-                              description: 'Deteksi objek secara langsung',
-                            ),
-                            const Divider(color: Colors.white24, height: 16),
-                            _FeatureItem(
-                              icon: Icons.zoom_in,
-                              title: 'Zoom Control',
-                              description: 'Kontrol zoom dengan gesture',
-                            ),
-                            const Divider(color: Colors.white24, height: 16),
-                            _FeatureItem(
-                              icon: Icons.flash_on,
-                              title: 'Flash Control',
-                              description:
-                                  'Kontrol flash untuk pencahayaan lebih baik',
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _navigateToScanner,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(25),
+                      const Text('💡', style: TextStyle(fontSize: 24)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Discover amazing things around you!',
+                          style: TextStyle(
+                            color: const Color.fromRGBO(66, 66, 66, 1),
+                            fontSize: screenWidth < 350 ? 14 : 16,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.camera_alt, size: 20),
-                            SizedBox(width: 8),
-                            Text('Mulai Scan', style: TextStyle(fontSize: 16)),
-                          ],
-                        ),
                       ),
-                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
-              ),
+
+                SizedBox(height: isSmallScreen ? 20 : 40),
+
+                // Camera widget
+                Center(child: _buildFriendlyCamera()),
+
+                SizedBox(height: isSmallScreen ? 20 : 40),
+
+                // Features container
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.green.shade200),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.emoji_emotions,
+                            color: Colors.orange.shade400,
+                            size: 24,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Cool Features',
+                            style: TextStyle(
+                              fontSize: screenWidth < 350 ? 16 : 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: isSmallScreen ? 12 : 16),
+                      _FeatureItem(
+                        emoji: '👁️',
+                        title: 'See instantly',
+                        description: 'Know what things are right away',
+                        color: Colors.purple.shade400,
+                      ),
+                      SizedBox(height: isSmallScreen ? 8 : 12),
+                      _FeatureItem(
+                        emoji: '🔍',
+                        title: 'Easy Zoom',
+                        description: 'Make things bigger with your finger',
+                        color: Colors.teal.shade400,
+                      ),
+                      SizedBox(height: isSmallScreen ? 8 : 12),
+                      _FeatureItem(
+                        emoji: '🔦',
+                        title: 'FlashLight',
+                        description: "Turn on light when it's dark",
+                        color: Colors.amber.shade400,
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: isSmallScreen ? 16 : 24),
+
+                // Start button
+                SizedBox(
+                  width: double.infinity,
+                  height: isSmallScreen ? 50 : 60,
+                  child: ElevatedButton(
+                    onPressed: _navigateToScanner,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromRGBO(255, 193, 7, 1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 5,
+                      shadowColor: const Color.fromRGBO(255, 193, 7, 0.3),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '🚀',
+                          style: TextStyle(fontSize: isSmallScreen ? 24 : 28),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Let\'s Start!',
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 18 : 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '⭐',
+                          style: TextStyle(fontSize: isSmallScreen ? 20 : 24),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: isSmallScreen ? 16 : 20),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
 class _FeatureItem extends StatelessWidget {
-  final IconData icon;
+  final String emoji;
   final String title;
   final String description;
+  final Color color;
 
   const _FeatureItem({
-    required this.icon,
+    required this.emoji,
     required this.title,
     required this.description,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(10),
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 350;
+
+    return Container(
+      padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(isSmallScreen ? 8 : 10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              emoji,
+              style: TextStyle(fontSize: isSmallScreen ? 20 : 24),
+            ),
           ),
-          child: Icon(icon, color: Colors.blue, size: 20),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+          SizedBox(width: isSmallScreen ? 10 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: const Color.fromRGBO(66, 66, 66, 1),
+                    fontSize: isSmallScreen ? 14 : 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                description,
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: const Color.fromRGBO(117, 117, 117, 1),
+                    fontSize: isSmallScreen ? 12 : 14,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
