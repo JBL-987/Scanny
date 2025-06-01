@@ -107,7 +107,6 @@ class ScannerView extends StatelessWidget {
           children: [
             _buildDetectionResult(screenSize),
             SizedBox(height: screenSize.spacing),
-            _buildZoomHint(screenSize),
           ],
         ),
       ),
@@ -278,39 +277,6 @@ class ScannerView extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildZoomHint(_ScreenSize screenSize) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: screenSize.hintPaddingH,
-        vertical: screenSize.hintPaddingV,
-      ),
-      decoration: BoxDecoration(
-        color: ScannerConstants.primaryColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text('👆', style: TextStyle(fontSize: screenSize.hintIconSize)),
-          SizedBox(width: screenSize.hintSpacing),
-          Flexible(
-            child: Text(
-              'Swipe up/down to zoom or use buttons',
-              style: TextStyle(
-                color: ScannerConstants.onSurfaceVariantColor,
-                fontSize: screenSize.hintFontSize,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

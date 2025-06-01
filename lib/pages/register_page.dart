@@ -17,7 +17,7 @@ class RegisterPage extends StatelessWidget {
       _authservice.signUpWithEmailPassword(
         _emailController.text,
         _passwordController.text,
-      );
+      ); 
     } catch (e) {
      showDialog(
         context: context,
