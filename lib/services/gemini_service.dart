@@ -6,7 +6,7 @@ class GeminiService {
   static const String _baseUrl =
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
   static const String _apiKey =
-      'AIzaSyCFu-EKyQmi4rDhmMXDQb1vM-it2ITXB5g'; 
+      'your-api_key'; 
   static const String _childFriendlyPrompt = '''
 You are a very good assistant at explaining things to young children who are just starting to learn.
 
